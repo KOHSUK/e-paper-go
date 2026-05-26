@@ -20,11 +20,15 @@ type Renderer struct {
 // NewRenderer parses fontData as an OpenType font or TrueType collection.
 func NewRenderer(fontData []byte) (*Renderer, error) {
 	if col, err := opentype.ParseCollection(fontData); err == nil {
-		f, err := col.Font(0)
-		if err != nil {
-			return nil, fmt.Errorf("load font collection entry 0: %w", err)
+		var lastErr error
+		for i := 0; i < col.NumFonts(); i++ {
+			f, err := col.Font(i)
+			if err == nil {
+				return &Renderer{font: f}, nil
+			}
+			lastErr = err
 		}
-		return &Renderer{font: f}, nil
+		return nil, fmt.Errorf("load font collection: %w", lastErr)
 	}
 
 	f, err := opentype.Parse(fontData)
